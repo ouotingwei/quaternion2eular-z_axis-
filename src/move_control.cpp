@@ -4,16 +4,8 @@
 #include<stdlib.h>
 
 // cm
-#define robot_vel_max = 10;
-#define robot_vel_max_distence = 50;
-#define robot_vel_med =5;
-#define robot_vel_max_distence = 20;
-#define robot_vel_min = 1;
-#define robot_vel_max_distence = 10;
 
-#define mission_point_a_x = 1;
-#define mission_point_a_y = 1;
-#define mission_pose_a = 270;
+int  set_point_a_x = 30;
 
 int move_error = 2;
 float quat_z = 0;
@@ -26,7 +18,7 @@ bool done_flag = false;
 
 float qua2eular(float);         //only for z-axis rotation
 void SLAM_POSE_Callback(const geometry_msgs::PoseStamped::ConstPtr&msg );
-void move_vel(int , int);
+void move_x(int , int);
 
 
 int main(int argc, char* argv[]){
@@ -38,7 +30,8 @@ int main(int argc, char* argv[]){
 
         while(ros::ok){
                  robot_pose = qua2eular(quat_z);
-                 std::cout << "robot_pose =  "<<robot_pose<<"           x = "<<robot_now_point_x<<"               y = " <<robot_now_point_y<<std::endl;
+                 //std::cout << "robot_pose =  "<<robot_pose<<"           x = "<<robot_now_point_x<<"               y = " <<robot_now_point_y<<std::endl;
+                 move_x(robot_now_point_x, set_point_a_x);
 
                  ros::spinOnce();
         }
@@ -61,14 +54,25 @@ float qua2eular(float quat_z){
         return pose;
 }
 
-int move_vel(int robot_now_point , int mission_point, bool done_flag ){
-        int dis_to_setpoint = mission_point - robot_now_point;
-        int error_low = mission_point - move_error;
-        int error_high = mission_point + move_error; 
+void move_x(int robot_now_point_x , int set_point_x ){
+        int dis_to_setpoint = set_point_x - robot_now_point_x;
+        int error_low =set_point_x - move_error;
+        int error_high = set_point_x + move_error; 
 
-        if 
+        if (robot_now_point_x > error_low && robot_now_point_x < error_high){        //reached
+                        //done
+                        std::cout << " done  "<<std::endl;
+        }else{                                                                                                                                        //not reached
+                if(dis_to_setpoint > 0 ){
+                        // move forward
+                        std::cout << " move forward  "<<std::endl;
 
-        return  robot_now_vel;
+                }else{
+                        //move backward
+                        std::cout << " move backward "<<std::endl;
+                }
+        }
+
 }
 
 
