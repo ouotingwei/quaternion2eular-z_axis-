@@ -208,3 +208,6 @@ include_directories(
 # catkin_add_nosetests(test)
 add_executable(qua2eular src/qua2eular.cpp)
 target_link_libraries(qua2eular ${catkin_LIBRARIES})
+
+add_executable(move src/move_control.cpp)
+target_link_libraries(move ${catkin_LIBRARIES})
