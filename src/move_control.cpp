@@ -38,6 +38,7 @@ float robot_now_point_y = 0;
 int robot_now_vel = 0;
 int robot_now_pose = 0;
 int temp_pose = 0;
+// bool mission_flag;
 
 //else
 float quat_z = 0;
