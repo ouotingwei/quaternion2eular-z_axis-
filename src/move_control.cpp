@@ -25,8 +25,7 @@
 #include<geometry_msgs/PoseStamped.h>
 
 //demo
-int set_point_a_x = 30;
-int set_point[3] = {30, 30, 270};
+int target[3] = {5, 5, 90};
 
 //error
 int point_error = 2;
@@ -38,7 +37,8 @@ float robot_now_point_y = 0;
 int robot_now_vel = 0;
 int robot_now_pose = 0;
 int temp_pose = 0;
-// bool mission_flag;
+bool mission_flag = false;
+bool continue_flag = false;
 
 //else
 float quat_z = 0;
@@ -46,10 +46,8 @@ float eular_z = 0;
 
 float qua2eular(float);         //only for z-axis rotation
 void SLAM_POSE_Callback(const geometry_msgs::PoseStamped::ConstPtr&msg );
-void move_x(int);
-void move_y(int);
 void check_attitude(int);
-void rotation(int);
+void move_plan(int ,int, int);
 
 int main(int argc, char* argv[]){
         ros::init(argc, argv,"qua2eular");
@@ -59,11 +57,12 @@ int main(int argc, char* argv[]){
         ros::Subscriber sub = n.subscribe("/slam_out_pose", 10, SLAM_POSE_Callback);
 
         while(ros::ok){
-                robot_now_pose = qua2eular(quat_z);
-                //std::cout << "robot_pose =  "<<robot_now_pose<<"           x = "<<robot_now_point_x<<"               y = " <<robot_now_point_y<<std::endl;
-                move_x(set_point[0]);
 
-                ros::spinOnce();
+                if(continue_flag == false){
+                        move_plan(target[0], target[1], target[2]);
+                }
+                
+
         }
 
         return 0;
@@ -84,84 +83,20 @@ float qua2eular(float quat_z){
         return pose;
 }
 
-void move_x(int set_point_x ){
-        int dis_to_setpoint = set_point_x - robot_now_point_x;
-        int error_low =set_point_x - point_error;
-        int error_high = set_point_x + point_error; 
-        
-        if(dis_to_setpoint > 0){
-                temp_pose = 180;
-
-        }else{
-                temp_pose = 0;
-
-        }
-
-        if (robot_now_point_x > error_low && robot_now_point_x < error_high){        //reached
-                        //done
-                        move_y(set_point[1]);
-
-        }else{                                                                                                                                        //not reached
-                if(dis_to_setpoint > 0 ){
-                        // move forward
-                        std::cout << " move forward               ";
-                        check_attitude(temp_pose);
-
-                }else{
-                        //move backward
-                        std::cout << " move backward           ";
-                        check_attitude(temp_pose);
-
-                }
-        }
-}
-
-void move_y(int set_point_y ){
-        int dis_to_setpoint = set_point_y - robot_now_point_y;
-        int error_low =set_point_y - point_error;
-        int error_high = set_point_y + point_error; 
-
-        if(dis_to_setpoint > 0){
-                temp_pose = 270;
-
-        }else{
-                temp_pose = 90;
-
-        }
-
-        if (robot_now_point_y > error_low && robot_now_point_y < error_high){        //reached
-                        //done
-                        rotation(set_point[2]);
-
-        }else{                                                                                                                                        //not reached
-                if(dis_to_setpoint > 0 ){
-                        // move right
-                        std::cout << " move right                ";
-                        check_attitude(temp_pose);
-
-                }else{
-                        //move left
-                        std::cout << " move left                    ";
-                        check_attitude(temp_pose);
-
-                }
-        }
-}
-
 void check_attitude(int temp_pose){
         int pose_error = robot_now_pose - temp_pose;
 
         if(pose_error > 0){
                 //turn left
-                std::cout << " turn left "<<std::endl;
+                std::cout << " turn_ccw "<<std::endl;
 
         }else if(pose_error < 0){
                 //turn right
-                std::cout << " turn_right"<<std::endl;
+                std::cout << " turn_cw"<<std::endl;
 
         }else{
                 //do nothing
-                std::cout<<" "<<std::endl;
+               std::cout<<" go straight"<<std::endl;
 
         }
 }
@@ -177,14 +112,110 @@ void rotation (int set_pose){
 
         }else if(deg_to_set_pose >0 ){
                 //turn right
-                std::cout << " turn_right"<<std::endl;
+                std::cout << " turn_cw"<<std::endl;
 
         }else{
                 //turn left
-                std::cout << " turn left  "<<std::endl;
+                std::cout << " turn_ccw  "<<std::endl;
 
         }
 }
+
+void move_plan(int set_point_x, int set_point_y, int set_pose){
+        int error_low_x =set_point_x - point_error;
+        int error_high_x = set_point_x + point_error; 
+        int error_low_y =set_point_y - point_error;
+        int error_high_y = set_point_y + point_error; 
+        int error_low_r = set_pose - rotate_error;
+        int error_high_r = set_pose + rotate_error;
+
+        while(mission_flag == false){
+                int dis_to_setpoint = set_point_x - robot_now_point_x;
+
+                robot_now_pose = qua2eular(quat_z);
+
+                if(dis_to_setpoint > 0){
+                        temp_pose = 180;
+
+                }else{
+                        temp_pose = 0;
+
+                }
+
+                if (robot_now_point_x > error_low_x && robot_now_point_x < error_high_x){        //reached
+                        //done
+                        mission_flag = true;
+
+                }else{                                                                                                                                        //not reached
+                        if(dis_to_setpoint > 0 ){
+                                std::cout << " move forward               ";
+                                check_attitude(temp_pose);
+
+                        }else{
+                                std::cout << " move backward           ";
+                                check_attitude(temp_pose);
+
+                        }
+                }
+
+                ros::spinOnce();
+        }
+
+        mission_flag = false;
+        while(mission_flag == false){
+                int dis_to_setpoint = set_point_x - robot_now_point_x;
+
+                robot_now_pose = qua2eular(quat_z);
+                
+                if(dis_to_setpoint > 0){
+                        temp_pose = 270;
+
+                }else{
+                        temp_pose = 90;
+
+                }
+
+                if (robot_now_point_y > error_low_y && robot_now_point_y < error_high_y){        //reached
+                        //done
+                        mission_flag = true;
+
+                }else{                                                                                                                                        //not reached
+                        if(dis_to_setpoint > 0 ){
+                                std::cout << " move right                ";
+                                check_attitude(temp_pose);
+
+                        }else{
+                                std::cout << " move left                    ";
+                                check_attitude(temp_pose);
+
+                        }
+                }
+        
+                ros::spinOnce();
+        }
+
+        mission_flag = false;
+        while(mission_flag == false){
+                int deg_to_set_pose = robot_now_pose - set_pose;
+                std::cout << "dis_to_setpoint"<<deg_to_set_pose<<std::endl;
+                if(deg_to_set_pose > error_low_r && deg_to_set_pose < error_high_r){
+                        mission_flag = true;
+
+                }else if(deg_to_set_pose > 0 ){
+                        std::cout << " turn_cw"<<std::endl;
+
+                }else{
+                        std::cout << " turn_ccw  "<<std::endl;
+
+                }
+
+                ros::spinOnce();
+        }
+
+        std::cout << "done"<<std::endl;
+        continue_flag = true;
+}
+
 
 
 
